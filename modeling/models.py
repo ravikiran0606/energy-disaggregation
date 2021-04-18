@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import math
 
 # class DNN(torch.nn.Module):
 #     def __init__(self, input_size, output_size, hidden_units_size):
@@ -81,3 +82,60 @@ class LSTMAttn(torch.nn.Module):
 
         return out_label, attn_weight
 
+def init_layer(layer):
+    """Initialize a Linear or Convolutional layer. """
+
+    #nn.init.xavier_uniform_(layer.weight)
+
+    if layer.weight.ndimension() == 4:
+        (n_out, n_in, height, width) = layer.weight.size()
+        n = n_in * height * width
+
+    elif layer.weight.ndimension() == 3:
+        (n_out, n_in, width) = layer.weight.size()
+        n = n_in * width
+
+    elif layer.weight.ndimension() == 2:
+        (n_out, n) = layer.weight.size()
+
+    std = math.sqrt(2. / n)
+    scale = std * math.sqrt(3.)
+    layer.weight.data.uniform_(-scale, scale)
+
+    if layer.bias is not None:
+        layer.bias.data.fill_(0.)
+
+class CNN(torch.nn.Module):
+    def __init__(self, feature_size, output_size):
+        super(CNN, self).__init__()
+
+        if torch.cuda.device_count() > 0:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+
+        self.feature_size = feature_size
+        self.output_size = output_size
+
+        self.kernel_size = (self.feature_size - 1) // 2 + 1
+        self.conv1 = nn.Conv2d(in_channels=2, out_channels=32, kernel_size=(self.kernel_size, 1), stride=(1, 1), padding=(0, 0), bias=True)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(self.kernel_size, 1), stride=(1, 1), padding=(0, 0), bias=True)
+        self.label = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0), bias=True)
+
+        self._init_layers()
+
+    def _init_layers(self):
+        init_layer(self.conv1)
+        init_layer(self.conv2)
+        init_layer(self.label)
+
+    def forward(self, input):
+        input.to(self.device)
+
+        input = input.view(input.shape[0], 2, input.shape[1], 1)
+        input = F.relu(self.conv1(input))
+        input = F.relu(self.conv2(input))
+        input = self.label(input)
+        input = input.view(input.shape[0], 1)
+
+        return input
