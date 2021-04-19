@@ -5,5 +5,7 @@
     "lstm_hidden_size": 100,
     "lstm_output_size": 1,
     "dishwasher_lstm_model": "../outputs/window_3/dishwaser/best_model_epoch=4.tar",
-    "dishwasher_batch_size": 256
+    "dishwasher_batch_size": 256,
+    "refrigerator_lstm_model": "../outputs/window_3/refrigerator/best_model_epoch=17.tar",
+    "refrigerator_batch_size": 256
 }

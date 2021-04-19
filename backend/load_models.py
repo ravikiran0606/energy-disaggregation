@@ -13,10 +13,19 @@ from modeling.models import LSTMAttn, CNN
 def load_models():
     config = json.load(open('config.json'))
 
-    # Load LSTM model for 
+    if torch.cuda.device_count() > 0:
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    # Load LSTM model for dishwasher
     dishwasher_lstm_model = LSTMAttn(config["lstm_feature_size"], config["lstm_hidden_size"], config["lstm_output_size"])
-    ref_lstm_model = LSTMAttn(config["lstm_feature_size"], config["lstm_hidden_size"], config["lstm_output_size"])
-    dishwasher_checkpoint = torch.load(config["dishwasher_lstm_model"], map_location=torch.device("cpu"))
+    dishwasher_checkpoint = torch.load(config["dishwasher_lstm_model"], map_location=device)
     dishwasher_lstm_model.load_state_dict(dishwasher_checkpoint["model"])
 
-    return dishwasher_lstm_model
+    # Load LSTM model for Refrigerator
+    refrigerator_lstm_model = LSTMAttn(config["lstm_feature_size"], config["lstm_hidden_size"], config["lstm_output_size"])
+    refrigerator_checkpoint = torch.load(config["refrigerator_lstm_model"], map_location=device)
+    refrigerator_lstm_model.load_state_dict(refrigerator_checkpoint["model"])
+    
+    return dishwasher_lstm_model, refrigerator_lstm_model

@@ -22,7 +22,7 @@ app = Flask(__name__)
 
 config = json.load(open('config.json'))
 
-dishwasher_lstm_model = load_models()
+dishwasher_lstm_model, refrigerator_lstm_model = load_models()
 
 @app.route('/')
 def main():
@@ -31,22 +31,28 @@ def main():
 @app.route('/disaggregate', methods=['POST'])
 def disaggregate():
     window_size = [3, 3]
-    appliance = ["dishwasher"]
+    appliance = ["dishwasher", "refrigerator"]
     appliance_predicted = defaultdict(list)
     file_path = request.files['file']
     df = pd.read_csv(file_path)
     for app in appliance:
+        print("Predicting values for {}".format(app))
         key = app + '_batch_size'
         batch_size = config[key]
         dataset = REDDDataset({}, df=df)
         infer_dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_with_padding)
-        y_pred = predict(dishwasher_lstm_model, infer_dataloader)
+        if app == 'dishwasher':
+            y_pred = predict(dishwasher_lstm_model, infer_dataloader)
+        elif app == 'refrigerator':
+            y_pred = predict(refrigerator_lstm_model, infer_dataloader)
         appliance_predicted[app] = y_pred
     
     for k, pred in appliance_predicted.items():
-        output_column = app + '_predicted'
+        output_column = k + '_predicted'
         df[output_column] = pred
     
+    df.to_csv('predicted_values.csv', index=False)
+
     return appliance_predicted
 
 
