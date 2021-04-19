@@ -45,10 +45,14 @@ def disaggregate():
         if prediction_model == 'lstm':
             infer_dataloader = DataLoader(dataset, batch_size=batch_size, 
                                          collate_fn=collate_with_padding)
-            if app == 'dishwasher':
+            if app == 'refrigerator':
                 y_pred = predict(dishwasher_lstm_model, infer_dataloader, prediction_model)
+                
             elif app == 'refrigerator':
                 y_pred = predict(refrigerator_lstm_model, infer_dataloader, prediction_model)
+                
+            appliance_predicted[app] = y_pred
+            
 
         elif prediction_model == 'cnn':
             infer_dataloader = DataLoader(dataset, batch_size=batch_size)
@@ -56,8 +60,10 @@ def disaggregate():
                 y_pred = predict(dishwasher_cnn_model, infer_dataloader, prediction_model)
             elif app == 'refrigerator':
                 y_pred = predict(refrigerator_cnn_model, infer_dataloader, prediction_model)
+            
+            appliance_predicted[app] = y_pred
         
-        appliance_predicted[app] = y_pred
+        
     
     for k, pred in appliance_predicted.items():
         output_column = k + '_predicted'
