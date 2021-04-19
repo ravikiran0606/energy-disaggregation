@@ -23,9 +23,19 @@ def load_models():
     dishwasher_checkpoint = torch.load(config["dishwasher_lstm_model"], map_location=device)
     dishwasher_lstm_model.load_state_dict(dishwasher_checkpoint["model"])
 
+    # Load CNN model for dishwasher
+    dishwasher_cnn_model = CNN(feature_size=config["cnn_feature_size"], output_size=config["cnn_output_size"])
+    dishwasher_cnn_checkpoint = torch.load(config["dishwasher_cnn_model"], map_location=device)
+    dishwasher_cnn_model.load_state_dict(dishwasher_cnn_checkpoint["model"])
+
     # Load LSTM model for Refrigerator
     refrigerator_lstm_model = LSTMAttn(config["lstm_feature_size"], config["lstm_hidden_size"], config["lstm_output_size"])
     refrigerator_checkpoint = torch.load(config["refrigerator_lstm_model"], map_location=device)
     refrigerator_lstm_model.load_state_dict(refrigerator_checkpoint["model"])
+
+    # Load CNN model for Refrigerator
+    refrigerator_cnn_model = CNN(feature_size=config["cnn_feature_size"], output_size=config["cnn_output_size"])
+    refrigerator_cnn_checkpoint = torch.load(config["refrigerator_cnn_model"], map_location=device)
+    refrigerator_cnn_model.load_state_dict(refrigerator_cnn_checkpoint["model"])
     
-    return dishwasher_lstm_model, refrigerator_lstm_model
+    return dishwasher_lstm_model, dishwasher_cnn_model, refrigerator_lstm_model, refrigerator_cnn_model

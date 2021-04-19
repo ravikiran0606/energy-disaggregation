@@ -22,7 +22,8 @@ app = Flask(__name__)
 
 config = json.load(open('config.json'))
 
-dishwasher_lstm_model, refrigerator_lstm_model = load_models()
+dishwasher_lstm_model, dishwasher_cnn_model, \
+    refrigerator_lstm_model, refrigerator_cnn_model = load_models()
 
 @app.route('/')
 def main():
@@ -35,16 +36,27 @@ def disaggregate():
     appliance_predicted = defaultdict(list)
     file_path = request.files['file']
     df = pd.read_csv(file_path)
+    prediction_model = request.args.get('model', 'lstm')
     for app in appliance:
-        print("Predicting values for {}".format(app))
+        print("Predicting values for {} using {} model".format(app, prediction_model))
         key = app + '_batch_size'
         batch_size = config[key]
         dataset = REDDDataset({}, df=df)
-        infer_dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_with_padding)
-        if app == 'dishwasher':
-            y_pred = predict(dishwasher_lstm_model, infer_dataloader)
-        elif app == 'refrigerator':
-            y_pred = predict(refrigerator_lstm_model, infer_dataloader)
+        if prediction_model == 'lstm':
+            infer_dataloader = DataLoader(dataset, batch_size=batch_size, 
+                                         collate_fn=collate_with_padding)
+            if app == 'dishwasher':
+                y_pred = predict(dishwasher_lstm_model, infer_dataloader, prediction_model)
+            elif app == 'refrigerator':
+                y_pred = predict(refrigerator_lstm_model, infer_dataloader, prediction_model)
+
+        elif prediction_model == 'cnn':
+            infer_dataloader = DataLoader(dataset, batch_size=batch_size)
+            if app == 'dishwasher':
+                y_pred = predict(dishwasher_cnn_model, infer_dataloader, prediction_model)
+            elif app == 'refrigerator':
+                y_pred = predict(refrigerator_cnn_model, infer_dataloader, prediction_model)
+        
         appliance_predicted[app] = y_pred
     
     for k, pred in appliance_predicted.items():
@@ -70,7 +82,7 @@ def collate_with_padding(batch):
     }
     return result_batch
 
-def predict(model, data_loader):
+def predict(model, data_loader, prediction_model):
     if torch.cuda.device_count() > 0:
         device = "cuda"
     else:
@@ -80,12 +92,18 @@ def predict(model, data_loader):
     y_pred = []
     for batch_idx, cur_batch in enumerate(tqdm(data_loader)):
         inputs = cur_batch["inputs"].to(device)
-        inputs_lengths = cur_batch["inputs_lengths"]
-        with torch.no_grad():
-            predictions, attn_weight = model(inputs, inputs_lengths, batch_size=inputs.shape[0])
-            pred = torch.squeeze(predictions)
-            y_pred += list(pred.data.cpu().tolist())
-    
+        if prediction_model == 'lstm':
+            inputs_lengths = cur_batch["inputs_lengths"]
+            with torch.no_grad():
+                predictions, attn_weight = model(inputs, inputs_lengths, batch_size=inputs.shape[0])
+                pred = torch.squeeze(predictions)
+                y_pred += list(pred.data.cpu().tolist())
+        elif prediction_model == 'cnn':
+            with torch.no_grad():
+                predictions = model(inputs)
+                pred = torch.squeeze(predictions)
+                y_pred += list(pred.data.cpu().tolist())
+
     return y_pred
 
 

@@ -6,10 +6,10 @@ The service can be run using the following command:
 $ python energy_disaggregator_service.py
 ```
 
-The seervice loads a trained model and predicts the disaggregated energy for `refrigerator` and `dishawasher`. The service can be invoked using the follwing `curl` command.
+The seervice loads a trained model and predicts the disaggregated energy for `refrigerator` and `dishawasher`. The service can be invoked using the follwing `curl` command. There is a parameter in the service called `model`. By default the service will use the `lstm` model. If the user wants to use the `cnn` model for predictions, set the value of the `model` parameter as `cnn`.
 
 ```bash
-$ curl -XPOST -F file=@/Users/rijulvohra/Documents/work/USC_courses/Practicum/Project/data/redd_processed/window_3/dishwaser/test.csv "http://0.0.0.0:5600/disaggregate"
+$ curl -XPOST -F file=@/Users/rijulvohra/Documents/work/USC_courses/Practicum/Project/data/redd_processed/window_3/dishwaser/test.csv "http://0.0.0.0:5600/disaggregate?model=lstm"
 ```
 
 It will output a dictionary with the key being the `appliance name` and value being a list of predicted values.
