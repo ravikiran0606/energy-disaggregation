@@ -52,7 +52,7 @@ def train_lstm(args):
     val_data_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, collate_fn=collate_with_padding)
 
     # Create the model
-    model = LSTMAttn(feature_size=2, hidden_size=args.lstm_hidden_size, output_size=1, num_layers=3, bidirectional=True)
+    model = LSTMAttn(feature_size=2, hidden_size=args.lstm_hidden_size, output_size=1, num_layers=args.lstm_num_layers, bidirectional=True)
 
     training_logs = []
     if torch.cuda.device_count() > 0:
@@ -189,9 +189,6 @@ def train_lstm(args):
             "avg_val_loss": avg_val_loss,
             "metrics": metrics
         })
-
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
 
     # Store the best model
     if args.do_eval:
@@ -370,9 +367,6 @@ def train_cnn(args):
             "metrics": metrics
         })
 
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-
     # Store the best model
     if args.do_eval:
         # Save the final best model:
@@ -435,11 +429,16 @@ if __name__ == "__main__":
                         help="Eval Batch Size")
     parser.add_argument("--lstm_hidden_size", type=int, default=100,
                         help="Hidden Size of LSTM")
+    parser.add_argument("--lstm_num_layers", type=int, default=1,
+                        help="Number of layers of LSTM")
 
     args = parser.parse_known_args()[0]
     args.do_eval = True
     args.output_dir = os.path.join(args.output_dir, "window_{}".format(args.window_segment_size), args.appliance, args.model_type)
     print(args)
+
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
 
     if args.mode == "train":
         if args.model_type == "LSTM":
