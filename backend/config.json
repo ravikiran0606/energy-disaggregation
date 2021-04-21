@@ -1,0 +1,15 @@
+{
+    "host": "0.0.0.0",
+    "port": "5600",
+    "lstm_feature_size": 2,
+    "lstm_hidden_size": 100,
+    "lstm_output_size": 1,
+    "dishwasher_lstm_model": "../outputs/window_3/dishwaser/best_model_epoch=4.tar",
+    "dishwasher_batch_size": 256,
+    "refrigerator_lstm_model": "../outputs/window_3/refrigerator/best_model_epoch=17.tar",
+    "refrigerator_batch_size": 256,
+    "cnn_feature_size": 5,
+    "cnn_output_size": 1,
+    "dishwasher_cnn_model": "../outputs/window_3/dishwaser/best_model_epoch=0.tar",
+    "refrigerator_cnn_model": "../outputs/window_3/refrigerator/best_model_epoch=1.tar"
+}

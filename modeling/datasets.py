@@ -5,7 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 
 class REDDDataset(Dataset):
-    def __init__(self, args, type_path="train"):
+    def __init__(self, args, type_path="train", df=None):
         # Getting the device info
         if torch.cuda.device_count() > 0:
             self.device = "cuda"
@@ -17,6 +17,7 @@ class REDDDataset(Dataset):
         self.total_num_indexes = 0
         self.args = args
         self.type_path = type_path
+        self.df = df
         self._build()
 
     def __len__(self):
@@ -26,10 +27,13 @@ class REDDDataset(Dataset):
         return None
 
     def _build(self):
-        self.file_path = os.path.join(self.args.data_dir, "window_{}".format(self.args.window_segment_size),
-                                      self.args.appliance, "{}.csv".format(self.type_path))
-        print("Reading data from ", self.file_path)
-        cur_df = pd.read_csv(self.file_path)
+        if self.df is None:
+            self.file_path = os.path.join(self.args.data_dir, "window_{}".format(self.args.window_segment_size),
+                                         self.args.appliance, "{}.csv".format(self.type_path))
+            print("Reading data from ", self.file_path)
+            cur_df = pd.read_csv(self.file_path)
+        else:
+            cur_df = self.df
         cur_df_cols = cur_df.columns
         mains1_cols = []
         mains2_cols = []
