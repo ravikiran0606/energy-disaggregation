@@ -2,68 +2,81 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 import os
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
+import glob
 
 class REDDDataset(Dataset):
-    def __init__(self, args, type_path="train", df=None):
+    def __init__(self, args, type_path="train"):
         # Getting the device info
         if torch.cuda.device_count() > 0:
             self.device = "cuda"
         else:
             self.device = "cpu"
 
-        self.data_map = {}
-        self.index_map = {}
-        self.total_num_indexes = 0
         self.args = args
         self.type_path = type_path
-        self.df = df
+        self.window_segment_size = self.args.window_segment_size
+
+        self.file_name_map = {}
+        self.data_map = {}
+        self.index_map = {}
+        self.total_num_samples = 0
         self._build()
 
     def __len__(self):
-        return self.total_num_indexes
+        return self.total_num_samples
 
     def __getitem__(self, index):
+        for f_idx, val in self.index_map.items():
+            if index < val["num_samples"]:
+                cur_idx = val["start_idx"] + index
+                cur_start = cur_idx - self.window_segment_size
+                cur_end = cur_idx + self.window_segment_size + 1
+                cur_input = self.data_map[f_idx][cur_start:cur_end, [1, 2]].astype(np.float32)
+                cur_output = self.data_map[f_idx][cur_idx, [3]].astype(np.float32)
+
+                return {
+                    "inputs": torch.tensor(cur_input),
+                    "targets": torch.tensor(cur_output)
+                }
+            else:
+                index -= val["num_samples"]
+
         return None
 
     def _build(self):
-        if self.df is None:
-            self.file_path = os.path.join(self.args.data_dir, "window_{}".format(self.args.window_segment_size),
-                                         self.args.appliance, "{}.csv".format(self.type_path))
-            print("Reading data from ", self.file_path)
-            cur_df = pd.read_csv(self.file_path)
-        else:
-            cur_df = self.df
-        cur_df_cols = cur_df.columns
-        mains1_cols = []
-        mains2_cols = []
-        for cur_col in cur_df_cols:
-            if "mains_1" in cur_col:
-                mains1_cols.append(cur_col)
-            elif "mains_2" in cur_col:
-                mains2_cols.append(cur_col)
+        self.data_folder = os.path.join(self.args.data_dir,
+                                        self.args.appliance,
+                                        self.type_path)
+        print("Reading data from", self.data_folder)
+        data_files_list = glob.glob(self.data_folder + "/*.csv")
+        data_files_list = list(sorted(data_files_list, key=lambda x: x.split("/")[-1].split(".")[0], reverse=False))
 
-        mains1 = cur_df[mains1_cols].values.tolist()
-        mains2 = cur_df[mains2_cols].values.tolist()
-        outputs = list(cur_df["output"])
+        # Load the data
+        cols = ["time_stamp", "mains_1", "mains_2", "output"]
+        for idx, cur_file in enumerate(data_files_list):
+            cur_df = pd.read_csv(cur_file, index_col=0)
+            cur_df["time_stamp"] = cur_df.index
+            cur_df = cur_df[cols]
+            self.data_map[idx] = cur_df.to_numpy()
+            self.file_name_map[idx] = cur_file
 
-        num_records = len(mains1)
-        for idx in tqdm(range(num_records)):
-            m1 = mains1[idx]
-            m2 = mains2[idx]
-            cur_inp = []
-            for m1_val, m2_val in zip(m1, m2):
-                cur_inp.append([m1_val, m2_val])
-            self.inputs.append(torch.tensor(cur_inp))
+        # Build the index map
+        for idx in self.data_map.keys():
+            num_records = len(self.data_map[idx])
+            s_idx = self.window_segment_size
+            e_idx = num_records - 1 - self.window_segment_size
+            num_samples = e_idx - s_idx + 1
 
-            out = outputs[idx]
-            self.targets.append(torch.tensor(out))
+            if num_samples <= 0:
+                continue
 
+            self.total_num_samples += num_samples
+            self.index_map[idx] = {
+                "start_idx": s_idx,
+                "end_idx": e_idx,
+                "num_samples": num_samples
+            }
 
-
-
-
-
-
-
-
+        print("Total number of samples =", self.total_num_samples)

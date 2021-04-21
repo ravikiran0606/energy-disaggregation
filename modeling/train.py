@@ -47,13 +47,12 @@ def train_lstm(args):
     # Create the dataset and data loaders
     train_dataset = REDDDataset(args, type_path="train")
     train_data_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, shuffle=True, collate_fn=collate_with_padding)
-    return
 
     val_dataset = REDDDataset(args, type_path="test")
     val_data_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, collate_fn=collate_with_padding)
 
     # Create the model
-    model = LSTMAttn(feature_size=2, hidden_size=args.lstm_hidden_size, output_size=1, bidirectional=True)
+    model = LSTMAttn(feature_size=2, hidden_size=args.lstm_hidden_size, output_size=1, num_layers=3, bidirectional=True)
 
     training_logs = []
     if torch.cuda.device_count() > 0:
@@ -140,6 +139,14 @@ def train_lstm(args):
             avg_val_loss /= num_val_steps
             metrics = computeMetrics(y_true, y_pred, loss_type=args.loss_type)
             print("Metrics :", metrics)
+
+            model_save_path = os.path.join(args.output_dir, "model_epoch={}.tar".format(epoch))
+            print("Saving model " + model_save_path)
+            torch.save({
+                'iteration': epoch,
+                'model': model.state_dict(),
+                'opt': optimizer.state_dict(),
+            }, model_save_path)
 
             if args.loss_type == "regression":
                 if best_val_loss is None:
@@ -313,6 +320,14 @@ def train_cnn(args):
             metrics = computeMetrics(y_true, y_pred, loss_type=args.loss_type)
             print("Metrics :", metrics)
 
+            model_save_path = os.path.join(args.output_dir, "model_epoch={}.tar".format(epoch))
+            print("Saving model " + model_save_path)
+            torch.save({
+                'iteration': epoch,
+                'model': model.state_dict(),
+                'opt': optimizer.state_dict(),
+            }, model_save_path)
+
             if args.loss_type == "regression":
                 if best_val_loss is None:
                     best_val_loss = metrics["rmse"]
@@ -423,7 +438,7 @@ if __name__ == "__main__":
 
     args = parser.parse_known_args()[0]
     args.do_eval = True
-    args.output_dir = os.path.join(args.output_dir, "window_{}".format(args.window_segment_size), args.appliance)
+    args.output_dir = os.path.join(args.output_dir, "window_{}".format(args.window_segment_size), args.appliance, args.model_type)
     print(args)
 
     if args.mode == "train":
@@ -434,14 +449,14 @@ if __name__ == "__main__":
         else:
             raise Exception("Invalid Model type.")
 
-        # # Store the best predictions
-        # df_pred = pd.DataFrame(data=best_pred, columns=["predicted_output"])
-        # pred_results_path = os.path.join(args.output_dir, "best_predictions.csv")
-        # df_pred.to_csv(pred_results_path, index=False)
-        #
-        # # Store the best metrics
-        # best_metrics_path = os.path.join(args.output_dir, "best_metrics.json")
-        # with open(best_metrics_path, "w") as f:
-        #     json.dump(best_metrics, f)
+        # Store the best predictions
+        df_pred = pd.DataFrame(data=best_pred, columns=["predicted_output"])
+        pred_results_path = os.path.join(args.output_dir, "best_predictions.csv")
+        df_pred.to_csv(pred_results_path, index=False)
+
+        # Store the best metrics
+        best_metrics_path = os.path.join(args.output_dir, "best_metrics.json")
+        with open(best_metrics_path, "w") as f:
+            json.dump(best_metrics, f)
 
 
