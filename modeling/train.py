@@ -47,6 +47,7 @@ def train_lstm(args):
     # Create the dataset and data loaders
     train_dataset = REDDDataset(args, type_path="train")
     train_data_loader = DataLoader(train_dataset, batch_size=args.train_batch_size, shuffle=True, collate_fn=collate_with_padding)
+    return
 
     val_dataset = REDDDataset(args, type_path="test")
     val_data_loader = DataLoader(val_dataset, batch_size=args.eval_batch_size, shuffle=False, collate_fn=collate_with_padding)
@@ -403,7 +404,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", type=str, default="train",
                         help="Whether to do training or testing.")
 
-    parser.add_argument("--data_dir", type=str, default="../data/redd_processed/",
+    parser.add_argument("--data_dir", type=str, default="../data/redd_processed/original/normalized",
                         help="Data directory which contains training and testing data")
     parser.add_argument("--output_dir", type=str, default="../outputs/",
                         help="Output directory to store the model checkpoints")
@@ -433,14 +434,14 @@ if __name__ == "__main__":
         else:
             raise Exception("Invalid Model type.")
 
-        # Store the best predictions
-        df_pred = pd.DataFrame(data=best_pred, columns=["predicted_output"])
-        pred_results_path = os.path.join(args.output_dir, "best_predictions.csv")
-        df_pred.to_csv(pred_results_path, index=False)
-
-        # Store the best metrics
-        best_metrics_path = os.path.join(args.output_dir, "best_metrics.json")
-        with open(best_metrics_path, "w") as f:
-            json.dump(best_metrics, f)
+        # # Store the best predictions
+        # df_pred = pd.DataFrame(data=best_pred, columns=["predicted_output"])
+        # pred_results_path = os.path.join(args.output_dir, "best_predictions.csv")
+        # df_pred.to_csv(pred_results_path, index=False)
+        #
+        # # Store the best metrics
+        # best_metrics_path = os.path.join(args.output_dir, "best_metrics.json")
+        # with open(best_metrics_path, "w") as f:
+        #     json.dump(best_metrics, f)
 
 

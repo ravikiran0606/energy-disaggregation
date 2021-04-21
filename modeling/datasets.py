@@ -12,20 +12,18 @@ class REDDDataset(Dataset):
         else:
             self.device = "cpu"
 
-        self.inputs = []
-        self.targets = []
+        self.data_map = {}
+        self.index_map = {}
+        self.total_num_indexes = 0
         self.args = args
         self.type_path = type_path
         self._build()
 
     def __len__(self):
-        return len(self.inputs)
+        return self.total_num_indexes
 
     def __getitem__(self, index):
-        return {
-            "inputs": self.inputs[index],
-            "targets": self.targets[index]
-        }
+        return None
 
     def _build(self):
         self.file_path = os.path.join(self.args.data_dir, "window_{}".format(self.args.window_segment_size),

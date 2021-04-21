@@ -16,3 +16,5 @@ CUDA_VISIBLE_DEVICES=2 python3 train.py --model_type CNN --appliance refrigerato
 # Dishwaser
 CUDA_VISIBLE_DEVICES=1 python3 train.py --model_type CNN --appliance dishwaser --window_segment_size 3 --num_epochs 10 --learning_rate 1e-5 --train_batch_size 256 --eval_batch_size 256
 
+
+python3 train.py --model_type LSTM --appliance refrigerator --window_segment_size 3 --num_epochs 10 --learning_rate 1e-5 --train_batch_size 256 --eval_batch_size 256
