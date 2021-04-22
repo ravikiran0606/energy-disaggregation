@@ -1,0 +1,1 @@
+python baseline_models.py --train_data ../../../data/redd_processed/original/raw/dishwaser/train --test_data ../../../data/redd_processed/original/raw/dishwaser/test --window_segment_size 7 --output_dir ../../../data/redd_processed/original/raw/dishwaser/baseline_models --appliance dishwaser
