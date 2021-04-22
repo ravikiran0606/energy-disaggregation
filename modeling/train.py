@@ -8,7 +8,8 @@ import torch.nn.functional as F
 from models import LSTMAttn, CNN
 import os, json, math
 import pandas as pd
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, mean_squared_error
+import numpy as np
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, mean_squared_error, mean_absolute_error
 
 def clip_gradient(model, clip_value):
     params = list(filter(lambda p: p.grad is not None, model.parameters()))
@@ -19,6 +20,8 @@ def computeMetrics(y_true, y_pred, loss_type):
     metrics_dict = {}
     if loss_type == "regression":
         metrics_dict["rmse"] = math.sqrt(mean_squared_error(y_true, y_pred))
+        metrics_dict["mae"] = mean_absolute_error(y_true, y_pred)
+        metrics_dict["sae"] = np.abs(np.sum(y_pred) - np.sum(y_true))/np.sum(y_true)
     elif loss_type == "classification":
         metrics_dict["accuracy"] = accuracy_score(y_true, y_pred)
         metrics_dict["precision"] = precision_score(y_true, y_pred)
@@ -433,8 +436,13 @@ if __name__ == "__main__":
                         help="Number of layers of LSTM")
 
     args = parser.parse_known_args()[0]
+
     args.do_eval = True
-    args.output_dir = os.path.join(args.output_dir, "window_{}".format(args.window_segment_size), args.appliance, args.model_type)
+    if args.model_type == "LSTM":
+        model_prefix = args.model_type + "_" + str(args.lstm_num_layers)
+    else:
+        model_prefix = args.model_type
+    args.output_dir = os.path.join(args.output_dir, "window_{}".format(args.window_segment_size), args.appliance, model_prefix)
     print(args)
 
     if not os.path.exists(args.output_dir):
