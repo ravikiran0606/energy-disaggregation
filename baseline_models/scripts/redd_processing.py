@@ -43,18 +43,27 @@ class REDDMLData():
                 "num_samples": num_samples
                 }
             
-    def generate_window_data(self):
+    def generate_window_data(self, past_only=False):
         window_map = defaultdict(list)
         window_target = defaultdict(list)
         for idx, val in self.index_map.items():
             for index in range(val['num_samples']):
-                cur_idx = val['start_idx'] + index
-                cur_start = cur_idx - self.window_segment_size
-                cur_end = cur_idx + self.window_segment_size + 1
-                cur_input = self.data_map[idx][cur_start:cur_end, [1, 2]].astype(np.float32)
-                cur_output = self.data_map[idx][cur_idx, [3]].astype(np.float32)
-                window_map[idx].append(np.reshape(cur_input, (cur_input.shape[0]*2)))
-                window_target[idx].append(cur_output)
+                if not(past_only):
+                    cur_idx = val['start_idx'] + index
+                    cur_start = cur_idx - self.window_segment_size
+                    cur_end = cur_idx + self.window_segment_size + 1
+                    cur_input = self.data_map[idx][cur_start:cur_end, [1, 2]].astype(np.float32)
+                    cur_output = self.data_map[idx][cur_idx, [3]].astype(np.float32)
+                    window_map[idx].append(np.reshape(cur_input, (cur_input.shape[0]*2)))
+                    window_target[idx].append(cur_output)
+                elif past_only:
+                    cur_idx = val['start_idx'] + index
+                    cur_start = cur_idx - self.window_segment_size
+                    cur_end = cur_idx +  1
+                    cur_input = self.data_map[idx][cur_start:cur_end, [1, 2]].astype(np.float32)
+                    cur_output = self.data_map[idx][cur_idx, [3]].astype(np.float32)
+                    window_map[idx].append(np.reshape(cur_input, (cur_input.shape[0]*2)))
+                    window_target[idx].append(cur_output)
                 
         for idx, val in window_map.items():
             window_map[idx] = np.array(val)
@@ -67,5 +76,5 @@ class REDDMLData():
 
 if __name__ == '__main__':
     data = REDDMLData('../../../data/redd_processed/original/raw/dishwaser/train/', 7)
-    t_arr, target_arr = data.generate_window_data()
+    t_arr, target_arr = data.generate_window_data(past_only=True)
     print(t_arr.shape, target_arr.shape)
