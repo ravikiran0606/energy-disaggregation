@@ -91,3 +91,5 @@ if __name__ == '__main__':
         fit_rf_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out)
     elif args.model_type == 'lr':
         fit_lr_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out)
+    elif args.model_type == 'hmm':
+        fit_hmm_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out)
