@@ -18,7 +18,7 @@ def generate_data(args):
                                                                          train_data_out.shape))
 
     test_data = REDDMLData(args.test_data, args.window_segment_size)
-    test_data_arr, test_data_out = test_data.generate_window_data()
+    test_data_arr, test_data_out = test_data.generate_window_data(past_only=args.past_only)
     print('Shape of Test data and output labels is {} and {}'.format(test_data_arr.shape, 
                                                                          test_data_out.shape))
     
