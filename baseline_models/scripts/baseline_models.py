@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 import pickle
 import json
 import os
+import math
 
 def generate_data(args):
     train_data = REDDMLData(args.train_data, args.window_segment_size)
@@ -24,7 +25,7 @@ def generate_data(args):
 
 def compute_metrics(y_true, y_pred):
     metrics = {}
-    metrics['rmse'] = mean_squared_error(y_true, y_pred, squared=False)
+    metrics['rmse'] = math.sqrt(mean_squared_error(y_true, y_pred)
     metrics['mae'] = mean_absolute_error(y_true, y_pred)
     metrics['sae'] = np.abs(np.sum(y_pred) - np.sum(y_true))/np.sum(y_true)
     return metrics
@@ -64,7 +65,7 @@ def generate_arguments():
     parser.add_argument('--appliance', type=str, default=None, required=True,
                         help='Name of appliance')
     parser.add_argument('--model_type', type=str, default='rf', required=True,
-                       help='model type Linear Regression/ Random Forest')
+                       help='model type Linear Regression(lr)/ Random Forest(rf)')
     return parser
 
 if __name__ == '__main__':
