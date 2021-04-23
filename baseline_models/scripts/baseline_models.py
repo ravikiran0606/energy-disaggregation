@@ -13,7 +13,7 @@ import math
 
 def generate_data(args):
     train_data = REDDMLData(args.train_data, args.window_segment_size)
-    train_data_arr, train_data_out = train_data.generate_window_data()
+    train_data_arr, train_data_out = train_data.generate_window_data(past_only=args.past_only)
     print('Shape of Training data and output labels is {} and {}'.format(train_data_arr.shape, 
                                                                          train_data_out.shape))
 
@@ -80,6 +80,8 @@ def generate_arguments():
                         help='Name of appliance')
     parser.add_argument('--model_type', type=str, default='rf', required=True,
                        help='model type Linear Regression(lr)/ Random Forest(rf)')
+    parser.add_argument('--past_only', type=bool, default=False, 
+                        help='Generate data from past timesteps or both from past and future')
     return parser
 
 if __name__ == '__main__':
