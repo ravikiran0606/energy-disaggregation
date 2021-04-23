@@ -25,7 +25,7 @@ def generate_data(args):
 
 def compute_metrics(y_true, y_pred):
     metrics = {}
-    metrics['rmse'] = math.sqrt(mean_squared_error(y_true, y_pred)
+    metrics['rmse'] = math.sqrt(mean_squared_error(y_true, y_pred))
     metrics['mae'] = mean_absolute_error(y_true, y_pred)
     metrics['sae'] = np.abs(np.sum(y_pred) - np.sum(y_true))/np.sum(y_true)
     return metrics
