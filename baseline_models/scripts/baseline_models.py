@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from redd_processing import REDDMLData
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from argparse import ArgumentParser
 import pickle
@@ -38,6 +39,17 @@ def fit_rf_model(args, train_data_arr, train_data_out, test_data_arr, test_data_
     model_save_path = os.path.join(args.output_dir, model_name)
     pickle.dump(model, open(model_save_path, 'wb'))
     json.dump(metrics, open(os.path.join(args.output_dir, 'metrics_rf.json'), 'w'))
+
+def fit_lr_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out):
+    model = LinearRegression()
+    model.fit(train_data_arr, train_data_out)
+    test_pred = model.predict(test_data_arr)
+    metrics = compute_metrics(test_data_out, test_pred)
+    print(metrics)
+    model_name = 'lr_' + args.appliance + '.pkl'
+    model_save_path = os.path.join(args.output_dir, model_name)
+    pickle.dump(model, open(model_save_path, 'wb'))
+    json.dump(metrics, open(os.path.join(args.output_dir, 'metrics_lr.json'), 'w'))
     
 def generate_arguments():
     parser = ArgumentParser()
@@ -51,6 +63,8 @@ def generate_arguments():
                         help='Path where the output model should be stored')
     parser.add_argument('--appliance', type=str, default=None, required=True,
                         help='Name of appliance')
+    parser.add_argument('--model_type', type=str, default='rf', required=True,
+                       help='model type Linear Regression/ Random Forest')
     return parser
 
 if __name__ == '__main__':
@@ -58,4 +72,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     train_data_arr, train_data_out, test_data_arr, test_data_out = generate_data(args)
     print('Training the model')
-    fit_rf_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out)
+    if args.model_type == 'rf':
+        fit_rf_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out)
+    elif args.model_type == 'lr':
+        fit_lr_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out)
