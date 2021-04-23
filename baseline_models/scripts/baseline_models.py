@@ -3,7 +3,7 @@ import numpy as np
 from redd_processing import REDDMLData
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.hmm import GaussianHMM
+from hmmlearn import hmm
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from argparse import ArgumentParser
 import pickle
@@ -55,7 +55,7 @@ def fit_lr_model(args, train_data_arr, train_data_out, test_data_arr, test_data_
     json.dump(metrics_s, open(os.path.join(args.output_dir, 'metrics_lr.json'), 'w'))
 
 def fit_hmm_model(args, train_data_arr, train_data_out, test_data_arr, test_data_out):
-    model = GaussianHMM()
+    model = hmm.GaussianHMM()
     model.fit(train_data_arr)
     test_pred = model.predict(test_data_arr)
     metrics = compute_metrics(test_data_out, test_pred)
