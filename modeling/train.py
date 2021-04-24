@@ -16,8 +16,18 @@ def clip_gradient(model, clip_value):
     for p in params:
         p.grad.data.clamp_(-clip_value, clip_value)
 
+def filter_preds(y_true, y_pred):
+    y_true_fil = []
+    y_pred_fil = []
+    for y_t, y_p in zip(y_true, y_pred):
+        if np.isfinite(y_t) and np.isfinite(y_p):
+            y_true_fil.append(y_t)
+            y_pred_fil.append(y_p)
+    return y_true_fil, y_pred_fil
+
 def computeMetrics(y_true, y_pred, loss_type):
     metrics_dict = {}
+    y_true, y_pred = filter_preds(y_true, y_pred)
     if loss_type == "regression":
         metrics_dict["rmse"] = math.sqrt(mean_squared_error(y_true, y_pred))
         metrics_dict["mae"] = mean_absolute_error(y_true, y_pred)

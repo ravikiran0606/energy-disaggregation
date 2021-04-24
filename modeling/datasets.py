@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import glob
 
+
 class REDDDataset(Dataset):
     def __init__(self, args, type_path="train"):
         # Getting the device info
@@ -80,3 +81,56 @@ class REDDDataset(Dataset):
             }
 
         print("Total number of samples =", self.total_num_samples)
+
+
+class REDDForecastDataset(Dataset):
+    def __init__(self, args, type_path="train"):
+        # Getting the device info
+        if torch.cuda.device_count() > 0:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+
+        self.args = args
+        self.type_path = type_path
+        self.window_segment_size = args.window_segment_size
+        self.num_ts_predict = args.num_ts_predict
+
+        self.inputs = []
+        self.targets = []
+        self._build()
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, index):
+        return {
+            "inputs": torch.tensor(self.inputs[index]).reshape(-1, 1),
+            "targets": torch.tensor(self.targets[index])
+        }
+
+    def _build(self):
+        self.file_path = os.path.join(self.args.data_dir, self.args.appliance, "h" + str(self.args.house_idx) + "_" + self.type_path + ".csv")
+        print("Reading data from", self.file_path)
+
+        # Load the data
+        df = pd.read_csv(self.file_path, index_col=0)
+        output_list = list(df["output"])
+
+        i = 0
+        for idx in tqdm(range(len(output_list))):
+            start = i - self.window_segment_size
+            end = i
+
+            if start < 0 or end + self.num_ts_predict > len(output_list):
+                i += 1
+                continue
+
+            x_vals = output_list[start: end]
+            y_vals = output_list[end: end+self.num_ts_predict]
+
+            self.inputs.append(x_vals)
+            self.targets.append(y_vals)
+            i += 1
+
+        print("Total number of samples =", len(self.inputs))

@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 import math
 
+
+# Models for Energy Disaggregation
 class LSTMAttn(torch.nn.Module):
     def __init__(self, feature_size, hidden_size, output_size, num_layers=3, bidirectional=True):
         super(LSTMAttn, self).__init__()
@@ -28,7 +30,6 @@ class LSTMAttn(torch.nn.Module):
         self.lstm = nn.LSTM(feature_size, hidden_size, num_layers=num_layers, bidirectional=bidirectional, batch_first=True)
         self.label = nn.Linear(self.out_hidden_size, output_size)
 
-
     def attention_net(self, lstm_output, final_state):
 
         # hidden = (num_layers x num_directions x batch_size x hidden_size)
@@ -51,7 +52,6 @@ class LSTMAttn(torch.nn.Module):
 
         return new_hidden_state, soft_attn_weights
 
-
     def forward(self, input, input_lengths, batch_size=None):
         input.to(self.device)
 
@@ -67,6 +67,7 @@ class LSTMAttn(torch.nn.Module):
         out_label = self.label(attn_output)
 
         return out_label, attn_weight
+
 
 def init_layer(layer):
     """Initialize a Linear or Convolutional layer. """
@@ -90,6 +91,7 @@ def init_layer(layer):
 
     if layer.bias is not None:
         layer.bias.data.fill_(0.)
+
 
 class CNN(torch.nn.Module):
     def __init__(self, feature_size, output_size):
@@ -127,3 +129,38 @@ class CNN(torch.nn.Module):
         input = self.label(input)
 
         return input
+
+
+# Models for Energy Consumption Forecasting
+class LSTMForecast(torch.nn.Module):
+    def __init__(self, feature_size, hidden_size, output_size, num_layers=1):
+        super(LSTMForecast, self).__init__()
+
+        if torch.cuda.device_count() > 0:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+
+        self.feature_size = feature_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+
+        self.lstm = nn.LSTM(feature_size, hidden_size, num_layers=num_layers, batch_first=True)
+        self.label = nn.Linear(self.hidden_size, output_size)
+
+    def forward(self, input, input_lengths, batch_size=None):
+        input.to(self.device)
+
+        h_0 = torch.autograd.Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device))
+        c_0 = torch.autograd.Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size, device=self.device))
+
+        input_packed = nn.utils.rnn.pack_padded_sequence(input, input_lengths, batch_first=True)
+        output_packed, (final_hidden_state, final_cell_state) = self.lstm(input_packed, (h_0, c_0))
+        output, output_lengths = nn.utils.rnn.pad_packed_sequence(output_packed, batch_first=True)
+
+        output.to(self.device)
+        # out_features = output[:, -1, :].squeeze()
+        out_label = self.label(final_hidden_state.squeeze())
+
+        return out_label
