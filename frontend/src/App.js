@@ -3,6 +3,7 @@ import { Layout, Menu } from 'antd';
 
 import 'antd/dist/antd.css';
 import MainDisaggregation from './MainDisaggregation';
+import DisaggregatedEnergy from './DisaggregatedEnergy';
 
 const App = () => {
   const { Header, Content } = Layout;
@@ -17,7 +18,7 @@ const App = () => {
       </Header>
       <Content style={{ padding: '0 50px' }}>
         <div className="site-layout-content">
-          <MainDisaggregation />
+          <DisaggregatedEnergy />
         </div>
       </Content>
     </Layout>

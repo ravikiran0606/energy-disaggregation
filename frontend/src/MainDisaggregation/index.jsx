@@ -1,81 +1,152 @@
-import React, { useState } from 'react';
-import { VictoryChart, VictoryLine, VictoryZoomContainer, VictoryBrushContainer, VictoryAxis } from 'victory';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Skeleton, Result } from 'antd';
+import { FrownOutlined } from '@ant-design/icons';
+import FilterForm from './FilterForm';
+import moment from 'moment';
+import Chart from './Chart';
+import DataTable from './DataTable';
+
+import './index.css';
 
 const MainDisaggregation = () => {
-  const [selectedDomain, setSelectedDomain] = useState(null);
-  const [zoomDomain, setZoomDomain] = useState(null);
+  const [formValues, setFormValues] = useState({
+    house: '1',
+    mains: '1',
+    date: null,
+    time: null,
+    endTime: null,
+    maxDate: null,
+    minDate: null,
+  });
+
+  const [data, setData] = useState({
+    isLoading: false,
+    data: null,
+    xAxis: null,
+    error: null,
+  });
+
+  const handleChange = (key, value) => {
+    const newValues = {};
+    if (key === 'house') {
+      newValues.maxDate = null;
+      newValues.minDate = null;
+      newValues.date = null;
+    }
+    if (key === 'time') {
+      newValues.endTime = moment(value, 'HH:mm:ss').add(5, 'm').format('HH:mm:ss');
+    }
+    setFormValues({
+      ...formValues,
+      ...newValues,
+      [key]: value,
+    });
+    setData({
+      ...data,
+      data: null,
+      xAxis: null,
+      error: null,
+    })
+  };
+
+  useEffect(() => {
+    if (formValues.house && formValues.maxDate === null && formValues.minDate === null) {
+      axios.get(`http://localhost:5600/house/${formValues.house}`)
+        .then(({ data }) => {
+          setFormValues({
+            ...formValues,
+            maxDate: data.maxDate,
+            minDate: data.minDate,
+            date: data.minDate,
+            time: '14:00:00',
+            endTime: '14:05:00',
+          });
+        });
+    }
+  });
+
+  useEffect(() => {
+    const { house, mains, date, time, endTime } = formValues;
+    if (!data.isLoading && data.data === null && data.error === null && house && mains && date && time && endTime) {
+      setData({
+        ...data,
+        isLoading: true,
+        data: null,
+        xAxis: null,
+        error: null,
+      });
+      const start = `${date} ${time}`;
+      const end = `${date} ${endTime}`;
+      axios.get(`http://localhost:5600/data/${house}/${mains}?start=${start}&end=${end}`)
+        .then(({ data: responseData }) => {
+          if (Object.keys(responseData).length === 0) {
+            setData({
+              ...data,
+              isLoading: false,
+              error: 'no data',
+            });
+          } else {
+            const keys = Object.keys(responseData);
+            let mainsAttr = 'mains_1'
+            if (mains === '2') {
+              mainsAttr = 'mains_2'
+            }
+            const modifiedData = keys.map((key) => ({
+              x: moment(key, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'),
+              y: responseData[key][mainsAttr]
+            }));
+            setData({
+              ...data,
+              isLoading: false,
+              data: modifiedData,
+              xAxis: keys.map((key) => moment(key, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss')),
+            });
+          }
+        })
+        .catch(() => {
+          setData({
+            ...data,
+            isLoading: false,
+            error: 'server error',
+          });
+        });
+    } 
+  });
 
   return (
-    <div>
-      <VictoryChart
-        width={550}
-        height={300}
-        scale={{x: "time"}}
-        containerComponent={
-          <VictoryZoomContainer responsive={false}
-            zoomDimension="x"
-            zoomDomain={zoomDomain}
-            onZoomDomainChange={setSelectedDomain}
-          />
-        }
-      >
-        <VictoryLine
-          style={{
-            data: {stroke: "tomato"}
-          }}
-          data={[
-            {x: new Date(1982, 1, 1), y: 125},
-            {x: new Date(1987, 1, 1), y: 257},
-            {x: new Date(1993, 1, 1), y: 345},
-            {x: new Date(1997, 1, 1), y: 515},
-            {x: new Date(2001, 1, 1), y: 132},
-            {x: new Date(2005, 1, 1), y: 305},
-            {x: new Date(2011, 1, 1), y: 270},
-            {x: new Date(2015, 1, 1), y: 470}
-          ]}
+    <div className="mains-container">
+      <div>
+        <h3>Total Energy Consumption</h3>
+        <FilterForm formValues={formValues} handleChange={handleChange} />
+      </div>
+      {
+        data.isLoading &&
+        <Skeleton active />
+      }
+      {
+        data.data !== null && data.data.length > 0 && data.xAxis !== null &&
+        <div className="mains-wrapper">
+          <Chart values={data.data} xAxis={data.xAxis} />
+          <DataTable data={data.data} />
+        </div>
+      }
+      {
+        data.error === 'no data' &&
+        <Result
+          icon={<FrownOutlined />}
+          title="No Data"
+          subTitle="No data was found for the given parameters"
         />
-      </VictoryChart>
-      <VictoryChart
-        width={550}
-        height={90}
-        scale={{x: "time"}}
-        padding={{top: 0, left: 50, right: 50, bottom: 30}}
-        containerComponent={
-          <VictoryBrushContainer responsive={false}
-            brushDimension="x"
-            brushDomain={selectedDomain}
-            onBrushDomainChange={setZoomDomain}
-          />
-        }
-      >
-        <VictoryAxis
-          tickValues={[
-            new Date(1985, 1, 1),
-            new Date(1990, 1, 1),
-            new Date(1995, 1, 1),
-            new Date(2000, 1, 1),
-            new Date(2005, 1, 1),
-            new Date(2010, 1, 1),
-            new Date(2015, 1, 1)
-          ]}
-          tickFormat={(x) => new Date(x).getFullYear()}
+      }
+      {
+        data.error === 'server error' &&
+        <Result
+          status="500"
+          title="500"
+          subTitle="Sorry, something went wrong."
         />
-        <VictoryLine
-          style={{
-            data: {stroke: "tomato"}
-          }}
-          data={[
-            {x: new Date(1982, 1, 1), y: 125},
-            {x: new Date(1987, 1, 1), y: 257},
-            {x: new Date(1993, 1, 1), y: 345},
-            {x: new Date(1997, 1, 1), y: 515},
-            {x: new Date(2001, 1, 1), y: 132},
-            {x: new Date(2005, 1, 1), y: 305},
-            {x: new Date(2011, 1, 1), y: 270},
-            {x: new Date(2015, 1, 1), y: 470}
-          ]}
-        />
-      </VictoryChart>
+      }
     </div>
   );
 };
