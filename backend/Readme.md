@@ -32,6 +32,8 @@ The parameter `time` in the API is an integer and denotes for how many hours do 
 
 The service returns a dictionary with key being a `string` of the `datetime` and the value being a `dictionary`. The value has two keys:
 
+* `output`: The value of the `output` key is either historical energy consumption or the forecasted energy consumption
+
 * `flag`: Representing whether the corresponding `output` value is historical data or forecasted data. If `flag:0` means corresponding `output` is historical data and if `flag:1` means corresponding `output is forecasted data. 
 
 ```bash
