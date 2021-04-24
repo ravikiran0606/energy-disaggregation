@@ -12,6 +12,7 @@ from collections import defaultdict
 from argparse import Namespace
 from sklearn.preprocessing import StandardScaler
 import pickle
+from datetime import datetime, timedelta
 
 dirname = os.path.dirname(os.path.abspath(__file__))
 modeling_path = os.path.join(dirname, "../")
@@ -20,6 +21,7 @@ sys.path.append(modeling_path)
 from modeling.datasets import REDDDataset
 from modeling.models import LSTMAttn, CNN
 from load_models import load_models
+from forecast_model import ForecastModel
 
 app = Flask(__name__)
 
@@ -92,6 +94,37 @@ def disaggregate():
     new_df.to_csv('predicted_values.csv', index=False)
 
     return appliance_predicted
+
+@app.route('/forecast', methods=['POST'])
+def forecast():
+    '''
+    Gives hourly forecast
+    A flag list is maintained. A 0 in the flag list means that 
+    the corresponding output value is historical data and a 1 in the
+    flag list means that the corresponding output value is the forecasted 
+    value by the model. 
+    '''
+    forecast_mod = ForecastModel()
+    file_path = request.files['file']
+    time_period = int(request.args.get('time', '12'))
+    df = pd.read_csv(file_path)
+    df['time_stamp'] = pd.to_datetime(df['time_stamp'])
+    timestamp_list = list(df['time_stamp'])
+    history_data = list(df['output'])
+    flag_list = [0 for _ in range(len(history_data))]
+    for cur_time in range(time_period):
+        cur_out = forecast_mod.trainARIMA(history_data)
+        cur_time_obj = timestamp_list[-1] + timedelta(hours=1)
+        print('Predicted value at {} is {}'.format(cur_time_obj, cur_out))
+        history_data.append(cur_out)
+        timestamp_list.append(cur_time_obj)
+        flag_list.append(1)
+
+    out_df = pd.DataFrame({'output':history_data, 'flag':flag_list}, index=timestamp_list)
+    out_df.index = out_df.index.astype('str')
+    out_df.to_csv('forecast_values.csv')
+    out_dict = out_df.to_dict('index')
+    return out_dict
 
 
 def collate_with_padding(batch):
