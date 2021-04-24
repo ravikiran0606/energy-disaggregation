@@ -8,7 +8,7 @@ import glob
 
 
 class REDDDataset(Dataset):
-    def __init__(self, args, type_path="train"):
+    def __init__(self, args, type_path="train", df=None):
         # Getting the device info
         if torch.cuda.device_count() > 0:
             self.device = "cuda"
@@ -23,28 +23,76 @@ class REDDDataset(Dataset):
         self.data_map = {}
         self.index_map = {}
         self.total_num_samples = 0
-        self._build()
+        self.df = df
+        if self.type_path == 'train':
+            self._build()
+        elif self.type_path == 'infer':
+            self._predict_dataset()
 
     def __len__(self):
         return self.total_num_samples
 
     def __getitem__(self, index):
-        for f_idx, val in self.index_map.items():
-            if index < val["num_samples"]:
-                cur_idx = val["start_idx"] + index
-                cur_start = cur_idx - self.window_segment_size
-                cur_end = cur_idx + self.window_segment_size + 1
-                cur_input = self.data_map[f_idx][cur_start:cur_end, [1, 2]].astype(np.float32)
-                cur_output = self.data_map[f_idx][cur_idx, [3]].astype(np.float32)
+        if self.type_path == 'train':
+            for f_idx, val in self.index_map.items():
+                if index < val["num_samples"]:
+                    cur_idx = val["start_idx"] + index
+                    cur_start = cur_idx - self.window_segment_size
+                    cur_end = cur_idx + self.window_segment_size + 1
+                    cur_input = self.data_map[f_idx][cur_start:cur_end, [1, 2]].astype(np.float32)
+                    cur_output = self.data_map[f_idx][cur_idx, [3]].astype(np.float32)
+                    
+                    return {
+                        "inputs": torch.tensor(cur_input),
+                        "targets": torch.tensor(cur_output)
+                        }
+                else:
+                    index -= val["num_samples"]
+        elif self.type_path == 'infer':
+            for f_idx, val in self.index_map.items():
+                # if index < val['start_idx']:
+                #     cur_start = index
+                #     cur_end = cur_start + self.window_segment_size*2 + 1
+                #     cur_input = self.data_map[f_idx][cur_start:cur_end, [1, 2]].astype(np.float32)
+                #     return {
+                #         "inputs": torch.tensor(cur_input)
+                #         }
+                # if index > val['end_idx']:
+                #     cur_start = index - (self.window_segment_size*2 + 1)
+                #     cur_end = index
+                #     cur_input = self.data_map[f_idx][cur_start:cur_end, [1, 2]].astype(np.float32)
+                #     return {
+                #         "inputs": torch.tensor(cur_input)
+                #         }
+                if index < val["num_samples"]:
+                    cur_idx = val["start_idx"] + index
+                    cur_start = cur_idx - self.window_segment_size
+                    cur_end = cur_idx + self.window_segment_size + 1
+                    cur_input = self.data_map[f_idx][cur_start:cur_end, [0, 1]].astype(np.float32)
+                    
+                    return {
+                        "inputs": torch.tensor(cur_input)
+                        }
+                else:
+                    index -= val["num_samples"]
 
-                return {
-                    "inputs": torch.tensor(cur_input),
-                    "targets": torch.tensor(cur_output)
-                }
-            else:
-                index -= val["num_samples"]
 
         return None
+    
+    def _predict_dataset(self):
+        num_records = len(self.df)
+        s_idx = self.window_segment_size
+        e_idx = num_records - 1 - self.window_segment_size
+        num_samples = e_idx - s_idx + 1
+        self.total_num_samples = num_records
+        self.index_map[0] = {
+            "start_idx": s_idx,
+            "end_idx": e_idx,
+            "num_samples": num_samples
+        }
+        self.data_map[0] = self.df
+        print('Number of samples in the data is {}'.format(self.index_map[0]['num_samples']))
+        print('Total number of samples in test data is {}'.format(self.total_num_samples))
 
     def _build(self):
         self.data_folder = os.path.join(self.args.data_dir,
