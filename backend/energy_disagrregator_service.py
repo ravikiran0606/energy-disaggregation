@@ -10,6 +10,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from collections import defaultdict
 from argparse import Namespace
+from flask_cors import CORS
 from sklearn.preprocessing import StandardScaler
 import pickle
 from datetime import datetime, timedelta
@@ -24,6 +25,7 @@ from load_models import load_models
 from forecast_model import ForecastModel
 
 app = Flask(__name__)
+CORS(app)
 
 config = json.load(open('config.json'))
 
@@ -42,6 +44,7 @@ def disaggregate():
     appliance = ["dishwasher", "refrigerator"]
     cols = ['mains_1', 'mains_2']
     appliance_predicted = defaultdict(list)
+    json_output = dict()
     file_path = request.files['file']
     df = pd.read_csv(file_path)
     dishwaser_df = dishwaser_scaler.transform(df[cols])
@@ -83,6 +86,14 @@ def disaggregate():
                 y_pred = predict(refrigerator_cnn_model, infer_dataloader, prediction_model)
             appliance_predicted[app] = y_pred
 
+        predicted_df = pd.DataFrame(columns=['timestamp'])
+        predicted_df['timestamp'] = new_df['timestamp']
+        predicted_df['mains_1'] = new_df['mains_1']
+        predicted_df['mains_2'] = new_df['mains_2']
+        predicted_df['predictions'] = y_pred
+
+        json_output[app] = predicted_df.to_dict('records')
+
     for k, pred in appliance_predicted.items():
         output_column = k + '_predicted'
         new_df[output_column] = pred
@@ -93,7 +104,7 @@ def disaggregate():
     new_df['remaining'] = remaining_watt_list
     new_df.to_csv('predicted_values.csv', index=False)
 
-    return appliance_predicted
+    return json_output
 
 @app.route('/forecast', methods=['POST'])
 def forecast():
@@ -115,21 +126,21 @@ def forecast():
     for cur_time in range(time_period):
         cur_out = forecast_mod.trainARIMA(history_data)
         cur_time_obj = timestamp_list[-1] + timedelta(hours=1)
-        print('Predicted value at {} is {}'.format(cur_time_obj, cur_out))
         history_data.append(cur_out)
         timestamp_list.append(cur_time_obj)
         flag_list.append(1)
 
-    out_df = pd.DataFrame({'output':history_data, 'flag':flag_list}, index=timestamp_list)
+    timestamp_list = list(map(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'), timestamp_list))
+    out_df = pd.DataFrame({'timestamp': timestamp_list, 'output': history_data, 'flag': flag_list})
     out_df.index = out_df.index.astype('str')
     out_df.to_csv('forecast_values.csv')
-    out_dict = out_df.to_dict('index')
-    return out_dict
+    out_dict = out_df.to_dict('records')
+    return { 'data': out_dict }
 
 
 def collate_with_padding(batch):
     sorted_batch = batch
-    inputs_list = [cur_row["inputs"] for cur_row in sorted_batch  if cur_row is not None]
+    inputs_list = [cur_row["inputs"] for cur_row in sorted_batch if cur_row is not None]
     inputs_lengths = torch.tensor([len(cur_input) for cur_input in inputs_list])
     #targets_list = torch.FloatTensor([cur_row["targets"] for cur_row in sorted_batch if cur_row is not None])
     inputs_padded_list = nn.utils.rnn.pad_sequence(inputs_list, batch_first=True)

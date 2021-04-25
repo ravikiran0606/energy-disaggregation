@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { VictoryChart, VictoryLine, VictoryZoomContainer, VictoryBrushContainer, VictoryAxis, VictoryLegend } from 'victory';
 
-const Chart = ({ values, xAxis, mainsOne, mainsTwo, appliance }) => {
+const Chart = ({ historical, forecast, xAxis }) => {
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [zoomDomain, setZoomDomain] = useState(null);
 
@@ -20,14 +20,13 @@ const Chart = ({ values, xAxis, mainsOne, mainsTwo, appliance }) => {
           />
         }
       >
-        <VictoryLegend x={400} y={50}
+        <VictoryLegend x={500} y={50}
           orientation="horizontal"
           gutter={20}
           style={{ border: { stroke: "black" }, title: {fontSize: 20 } }}
           data={[
-            { name: `${appliance.charAt(0).toUpperCase()}${appliance.substring(1)}`, symbol: { fill: "#BB4430" } },
-            { name: "Mains 1", symbol: { fill: "#002642" } },
-            { name: "Mains 2", symbol: { fill: "#248232" } }
+            { name: 'Historical', symbol: { fill: "#BB4430" } },
+            { name: "Forecast", symbol: { fill: "#002642" } }
           ]}
         />
         <VictoryAxis
@@ -43,19 +42,13 @@ const Chart = ({ values, xAxis, mainsOne, mainsTwo, appliance }) => {
           style={{
             data: {stroke: "#BB4430"}
           }}
-          data={values}
+          data={historical}
         />
         <VictoryLine
           style={{
             data: {stroke: "#002642"}
           }}
-          data={mainsOne}
-        />
-        <VictoryLine
-          style={{
-            data: {stroke: "#248232"}
-          }}
-          data={mainsTwo}
+          data={forecast}
         />
       </VictoryChart>
       <VictoryChart
@@ -82,19 +75,13 @@ const Chart = ({ values, xAxis, mainsOne, mainsTwo, appliance }) => {
           style={{
             data: {stroke: "#BB4430"}
           }}
-          data={values}
+          data={historical}
         />
         <VictoryLine
           style={{
             data: {stroke: "#002642"}
           }}
-          data={mainsOne}
-        />
-        <VictoryLine
-          style={{
-            data: {stroke: "#248232"}
-          }}
-          data={mainsTwo}
+          data={forecast}
         />
       </VictoryChart>
     </div>

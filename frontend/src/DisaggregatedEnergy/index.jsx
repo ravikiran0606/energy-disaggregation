@@ -64,6 +64,8 @@ const DisaggregatedEnergy = () => {
         data: {
           dishwasher: dishwasherData,
           refrigerator: refrigeratorData,
+          mainsOne: mainsOneData,
+          mainsTwo: mainsTwoData,
         },
         xAxis,
         yAxis,
@@ -104,8 +106,14 @@ const DisaggregatedEnergy = () => {
       {
         renderIf(() => data.data && appliance && data.data[appliance], () => (
           <div className="data-wrapper">
-            <Chart values={data.data[appliance]} xAxis={data.xAxis[appliance]} yAxis={data.yAxis[appliance]} />
-            <DataTable data={data.data[appliance]} />
+            <Chart
+              values={data.data[appliance]}
+              xAxis={data.xAxis[appliance]}
+              mainsOne={data.data.mainsOne}
+              mainsTwo={data.data.mainsTwo}
+              appliance={appliance}
+            />
+            <DataTable data={data.data[appliance]} mainsOne={data.data.mainsOne} mainsTwo={data.data.mainsTwo} />
           </div>
         ))
       }

@@ -13,7 +13,6 @@ class ForecastModel:
         pass
     
     def trainARIMA(self, history_data: list):
-        print(len(history_data))
         cur_model = ARIMA(history_data, order=(10,1,0))
         cur_model_fit = cur_model.fit()
         cur_out = cur_model_fit.forecast()[0]
