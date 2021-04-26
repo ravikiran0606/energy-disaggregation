@@ -77,12 +77,14 @@ def disaggregate():
             if app == 'dishwasher':
                 args = Namespace(window_segment_size=config['dishwaser_cnn_window'])
                 dataset = REDDDataset(args, type_path='infer', df=dishwaser_df)
-                infer_dataloader = DataLoader(dataset, batch_size=batch_size)
+                infer_dataloader = DataLoader(dataset, batch_size=batch_size,
+                                            collate_fn=collate_with_padding)
                 y_pred = predict(dishwasher_cnn_model, infer_dataloader, prediction_model)
             elif app == 'refrigerator':
                 args = Namespace(window_segment_size=config['refrigerator_cnn_window'])
                 dataset = REDDDataset(args, type_path='infer', df=refrigerator_df)
-                infer_dataloader = DataLoader(dataset, batch_size=batch_size)
+                infer_dataloader = DataLoader(dataset, batch_size=batch_size,
+                                            collate_fn=collate_with_padding)
                 y_pred = predict(refrigerator_cnn_model, infer_dataloader, prediction_model)
             appliance_predicted[app] = y_pred
 
