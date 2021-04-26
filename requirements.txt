@@ -4,3 +4,5 @@ scikit-learn
 tqdm
 torch
 flask
+hmmlearn
+statsmodels

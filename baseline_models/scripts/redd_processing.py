@@ -2,6 +2,8 @@ import pandas as pd
 import glob
 import numpy as np
 from collections import defaultdict
+from sklearn.preprocessing import StandardScaler
+import pickle
 
 class REDDMLData():
     def __init__(self, data_dir, window_segment_size):
@@ -73,8 +75,23 @@ class REDDMLData():
         train_out = np.concatenate(tuple([window_target[idx] for idx in window_target.keys()]))
         print("Shape of training data and output array generated is {} and {}".format(train_arr.shape, train_out.shape))
         return train_arr, train_out
+    
+    def compute_normalization_factor(self, appliance):
+        cols = ['mains_1', 'mains_2']
+        new_df_list = []
+        for file in glob.glob(self.data_dir + '*.csv'):
+            df = pd.read_csv(file)[cols]
+            new_df_list.append(df)
+        new_df = pd.concat(new_df_list)
+        #print(new_df.shape)
+        scaler = StandardScaler()
+        scaler.fit_transform(new_df)
+        pickle.dump(scaler, open(appliance + '_norm_factor.pkl', 'wb'))
+        scaler_load = pickle.load(open(appliance + '_norm_factor.pkl', 'rb'))
+        print(scaler_load.mean_)
 
 if __name__ == '__main__':
-    data = REDDMLData('../../../data/redd_processed/original/raw/dishwaser/train/', 7)
-    t_arr, target_arr = data.generate_window_data(past_only=True)
-    print(t_arr.shape, target_arr.shape)
+    data = REDDMLData('../../../data/redd_processed/original/raw/refrigerator/train/', 7)
+    #t_arr, target_arr = data.generate_window_data()
+    data.compute_normalization_factor('refrigerator')
+    #print(t_arr.shape, target_arr.shape)

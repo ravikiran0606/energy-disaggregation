@@ -1,0 +1,18 @@
+.disaggregated-container {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.data-wrapper {
+  display: flex;
+  padding: 1rem;
+}
+
+.form-wrapper {
+  display: flex;
+}
+
+.form-field {
+  padding-right: 1rem;
+}
