@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { message, Select } from 'antd';
-import _min from 'lodash/min';
-import _max from 'lodash/max';
 import moment from 'moment';
 import UploadFile from './FileUpload';
 
@@ -21,9 +19,19 @@ const DisaggregatedEnergy = () => {
     isLoading: false,
     data: null,
     xAxis: null,
-    yAxis: null,
     error: null,
   });
+
+  const handleChange = (selectedModel) => {
+    setData({
+      ...data,
+      isLoading: false,
+      data: null,
+      xAxis: null,
+      error: null,
+    });
+    setModel(selectedModel)
+  }
 
   const onChange = (info) => {
     if (info.file.status !== 'uploading') {
@@ -32,7 +40,6 @@ const DisaggregatedEnergy = () => {
         isLoading: true,
         data: null,
         xAxis: null,
-        yAxis: null,
         error: null,
       });
       setAppliance('dishwasher');
@@ -42,21 +49,9 @@ const DisaggregatedEnergy = () => {
       const { response } = info.file;
       const dishwasherData = response.dishwasher.map(({ timestamp, predictions}) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: predictions }));
       const refrigeratorData = response.refrigerator.map(({ timestamp, predictions}) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: predictions }));
-      const mainsOneData = response.dishwasher.map(({ timestamp, mains_1 }) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: mains_1 }));
-      const mainsTwoData = response.dishwasher.map(({ timestamp, mains_2 }) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: mains_2 }));
       const xAxis = {
         dishwasher: dishwasherData.map((d) => d.x),
         refrigerator: refrigeratorData.map((d) => d.x),
-      };
-      const yAxis = {
-        dishwasher: [
-          _min([_min(dishwasherData, (d) => d.y).y, _min(mainsOneData, (d) => d.y).y, _min(mainsTwoData, (d) => d.y).y]),
-          _max([_max(dishwasherData, (d) => d.y).y, _max(mainsOneData, (d) => d.y).y, _max(mainsTwoData, (d) => d.y).y]),
-        ],
-        refrigerator: [
-          _min([_min(refrigeratorData, (d) => d.y).y, _min(mainsOneData, (d) => d.y).y, _min(mainsTwoData, (d) => d.y).y]),
-          _max([_max(refrigeratorData, (d) => d.y).y, _max(mainsOneData, (d) => d.y).y, _max(mainsTwoData, (d) => d.y).y]),
-        ],
       };
       setData({
         ...data,
@@ -64,11 +59,16 @@ const DisaggregatedEnergy = () => {
         data: {
           dishwasher: dishwasherData,
           refrigerator: refrigeratorData,
-          mainsOne: mainsOneData,
-          mainsTwo: mainsTwoData,
+          mainsOne: {
+            dishwasher: response.dishwasher.map(({ timestamp, mains_1 }) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: mains_1 })),
+            refrigerator: response.refrigerator.map(({ timestamp, mains_1 }) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: mains_1 })),
+          },
+          mainsTwo: {
+            dishwasher: response.dishwasher.map(({ timestamp, mains_2 }) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: mains_2 })),
+            refrigerator: response.refrigerator.map(({ timestamp, mains_2 }) => ({ x: moment(timestamp, 'YYYY-MM-DD HH:mm:ss').format('HH:mm:ss'), y: mains_2})),
+          },
         },
         xAxis,
-        yAxis,
       });
     } else if (info.file.status === 'error') {
       message.error(`${info.file.name} file upload failed.`);
@@ -84,7 +84,7 @@ const DisaggregatedEnergy = () => {
     <div className="disaggregated-container">
       <div className="form-wrapper">
         <div className="form-field">
-          <Select defaultValue="lstm" style={{ width: 120 }} onChange={setModel}>
+          <Select defaultValue="lstm" style={{ width: 120 }} onChange={handleChange}>
             <Option value="lstm">LSTM</Option>
             <Option value="cnn">CNN</Option>
           </Select>
@@ -109,11 +109,11 @@ const DisaggregatedEnergy = () => {
             <Chart
               values={data.data[appliance]}
               xAxis={data.xAxis[appliance]}
-              mainsOne={data.data.mainsOne}
-              mainsTwo={data.data.mainsTwo}
+              mainsOne={data.data.mainsOne[appliance]}
+              mainsTwo={data.data.mainsTwo[appliance]}
               appliance={appliance}
             />
-            <DataTable data={data.data[appliance]} mainsOne={data.data.mainsOne} mainsTwo={data.data.mainsTwo} />
+            <DataTable data={data.data[appliance]} mainsOne={data.data.mainsOne[appliance]} mainsTwo={data.data.mainsTwo[appliance]} />
           </div>
         ))
       }

@@ -20,13 +20,13 @@ def load_models():
 
     # Load LSTM model for dishwasher
     dishwasher_lstm_model = LSTMAttn(feature_size=config["lstm_feature_size"], hidden_size=config["lstm_hidden_size"], 
-                                     output_size=config["lstm_output_size"], num_layers=config['dishwaser_lstm_num_layers'], 
+                                     output_size=config["lstm_output_size"], num_layers=config['dishwasher_lstm_num_layers'],
                                      bidirectional=True)
     dishwasher_checkpoint = torch.load(config["dishwasher_lstm_model"], map_location=device)
     dishwasher_lstm_model.load_state_dict(dishwasher_checkpoint["model"])
 
     # Load CNN model for dishwasher
-    dishwasher_cnn_model = CNN(feature_size=(config["dishwaser_cnn_window"]*2)-1, output_size=config["cnn_output_size"])
+    dishwasher_cnn_model = CNN(feature_size=(config["dishwasher_cnn_window"]*2)-1, output_size=config["cnn_output_size"])
     dishwasher_cnn_checkpoint = torch.load(config["dishwasher_cnn_model"], map_location=device)
     dishwasher_cnn_model.load_state_dict(dishwasher_cnn_checkpoint["model"])
 

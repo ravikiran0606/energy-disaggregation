@@ -32,7 +32,7 @@ config = json.load(open('config.json'))
 dishwasher_lstm_model, dishwasher_cnn_model, \
     refrigerator_lstm_model, refrigerator_cnn_model = load_models()
 
-dishwaser_scaler = pickle.load(open(config['dishwaser_normalization_factor'], 'rb'))
+dishwaser_scaler = pickle.load(open(config['dishwasher_normalization_factor'], 'rb'))
 refrigerator_scaler = pickle.load(open(config['refrigerator_normalization_factor'], 'rb'))
 
 @app.route('/')
@@ -46,21 +46,22 @@ def disaggregate():
     appliance_predicted = defaultdict(list)
     json_output = dict()
     file_path = request.files['file']
+    prediction_model = request.args.get('model', 'lstm')
     df = pd.read_csv(file_path)
     dishwaser_df = dishwaser_scaler.transform(df[cols])
     refrigerator_df = refrigerator_scaler.transform(df[cols])
-    s_idx = config['dishwaser_lstm_window']
-    e_idx = len(df) - 1 - config['dishwaser_lstm_window']
-    new_df = df.iloc[s_idx:e_idx+1]
-    prediction_model = request.args.get('model', 'lstm')
+
     for app in appliance:
+        s_idx = config['{}_{}_window'.format(app, prediction_model)]
+        e_idx = len(df) - 1 - config['{}_{}_window'.format(app, prediction_model)]
+        new_df = df.iloc[s_idx:e_idx + 1]
         print("Predicting values for {} using {} model".format(app, prediction_model))
         key = app + '_batch_size'
         batch_size = config[key]
         
         if prediction_model == 'lstm':
             if app == 'dishwasher':
-                args = Namespace(window_segment_size=config['dishwaser_lstm_window'])
+                args = Namespace(window_segment_size=config['dishwasher_lstm_window'])
                 dataset = REDDDataset(args, type_path='infer', df=dishwaser_df)
                 infer_dataloader = DataLoader(dataset, batch_size=batch_size, 
                                               collate_fn=collate_with_padding)
@@ -75,7 +76,7 @@ def disaggregate():
             
         elif prediction_model == 'cnn':
             if app == 'dishwasher':
-                args = Namespace(window_segment_size=config['dishwaser_cnn_window'])
+                args = Namespace(window_segment_size=config['dishwasher_cnn_window'])
                 dataset = REDDDataset(args, type_path='infer', df=dishwaser_df)
                 infer_dataloader = DataLoader(dataset, batch_size=batch_size,
                                             collate_fn=collate_with_padding)
@@ -96,15 +97,15 @@ def disaggregate():
 
         json_output[app] = predicted_df.to_dict('records')
 
-    for k, pred in appliance_predicted.items():
-        output_column = k + '_predicted'
-        new_df[output_column] = pred
-    remaining_watt_list = []
-    for i, row in new_df.iterrows():
-        remaining_watt = ((row['mains_1'] + row['mains_2']) - (row['dishwasher_predicted'] + row['dishwasher_predicted']))
-        remaining_watt_list.append(remaining_watt)
-    new_df['remaining'] = remaining_watt_list
-    new_df.to_csv('predicted_values.csv', index=False)
+    # for k, pred in appliance_predicted.items():
+    #     output_column = k + '_predicted'
+    #     new_df[output_column] = pred
+    # remaining_watt_list = []
+    # for i, row in new_df.iterrows():
+    #     remaining_watt = ((row['mains_1'] + row['mains_2']) - (row['dishwasher_predicted'] + row['dishwasher_predicted']))
+    #     remaining_watt_list.append(remaining_watt)
+    # new_df['remaining'] = remaining_watt_list
+    # new_df.to_csv('predicted_values.csv', index=False)
 
     return json_output
 
